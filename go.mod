@@ -1,6 +1,6 @@
-module github.com/dmonteroh/fabric-distributed-resources/resources-contract
+module github.com/dmonteroh/distributed-resources-smartcontract
 
-go 1.14
+go 1.17
 
 require (
 	github.com/golang/protobuf v1.3.2

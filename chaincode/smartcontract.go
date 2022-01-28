@@ -15,9 +15,13 @@ type SmartContract struct {
 
 // InitLedger adds a base set of assets to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	stats := []internal.StatsObject{}
+	landings := []internal.StatsObject{}
 
-	for _, stat := range stats {
+	for _, landing := range landings {
+		landingJSON, err := json.Marshal(landing)
+		if err != nil {
+			return err
+		}
 
 		err = ctx.GetStub().PutState(landing.Dronename, landingJSON)
 		if err != nil {
@@ -38,11 +42,7 @@ func (s *SmartContract) CreateLanding(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("the landing %s already exists", dronename)
 	}
 
-	landing := Landing{
-		Dronename:        dronename,
-		LandingXposition: landingxposition,
-		LandingYposition: landingyposition,
-	}
+	landing := internal.StatsObject{}
 	landingJSON, err := json.Marshal(landing)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (s *SmartContract) CreateLanding(ctx contractapi.TransactionContextInterfac
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadLanding(ctx contractapi.TransactionContextInterface, dronename string) (*Landing, error) {
+func (s *SmartContract) ReadLanding(ctx contractapi.TransactionContextInterface, dronename string) (*internal.StatsObject, error) {
 	landingJSON, err := ctx.GetStub().GetState(dronename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from world state: %v", err)
@@ -61,7 +61,7 @@ func (s *SmartContract) ReadLanding(ctx contractapi.TransactionContextInterface,
 		return nil, fmt.Errorf("the landing %s does not exist", dronename)
 	}
 
-	var landing Landing
+	var landing internal.StatsObject
 	err = json.Unmarshal(landingJSON, &landing)
 	if err != nil {
 		return nil, err
@@ -81,11 +81,7 @@ func (s *SmartContract) UpdateLanding(ctx contractapi.TransactionContextInterfac
 	}
 
 	// overwriting original asset with new asset
-	landing := Landing{
-		Dronename:        dronename,
-		LandingXposition: landingxposition,
-		LandingYposition: landingyposition,
-	}
+	landing := internal.StatsObject{}
 	landingJSON, err := json.Marshal(landing)
 	if err != nil {
 		return err
@@ -134,7 +130,7 @@ func (s *SmartContract) TransferLanding(ctx contractapi.TransactionContextInterf
 }
 
 // GetAllAssets returns all assets found in world state
-func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*Landing, error) {
+func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*internal.StatsObject, error) {
 	// range query with empty string for startKey and endKey does an
 	// open-ended query of all assets in the chaincode namespace.
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
@@ -143,14 +139,14 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	}
 	defer resultsIterator.Close()
 
-	var landings []*Landing
+	var landings []*internal.StatsObject
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var landing Landing
+		var landing internal.StatsObject
 		err = json.Unmarshal(queryResponse.Value, &landing)
 		if err != nil {
 			return nil, err
