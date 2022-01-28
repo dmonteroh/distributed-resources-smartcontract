@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmonteroh/fabric-distributed-resources/internal"
+	"github.com/dmonteroh/distributed-resources-smartcontract/internal"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
@@ -15,15 +15,10 @@ type SmartContract struct {
 
 // InitLedger adds a base set of assets to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	landings := []internal.StatsObject{}
+	stats := []internal.StatsObject{}
 
-	for _, landing := range landings {
-		landingJSON, err := json.Marshal(landing)
-		if err != nil {
-			return err
-		}
-
-		err = ctx.GetStub().PutState(landing.Dronename, landingJSON)
+	for _, stat := range stats {
+		err := ctx.GetStub().PutState(stat.Identity.IP, []byte(stat.String()))
 		if err != nil {
 			return fmt.Errorf("failed to put to world state. %v", err)
 		}
@@ -33,100 +28,81 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 }
 
 // CreateAsset issues a new asset to the world state with given details.
-func (s *SmartContract) CreateLanding(ctx contractapi.TransactionContextInterface, dronename string, landingxposition float64, landingyposition float64) error {
-	exists, err := s.LandingExists(ctx, dronename)
+func (s *SmartContract) CreateStat(ctx contractapi.TransactionContextInterface, statIP string, statJSON string) error {
+	exists, err := s.StatExists(ctx, statIP)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("the landing %s already exists", dronename)
+		return fmt.Errorf("the Stats for %s already exists", statIP)
 	}
-
-	landing := internal.StatsObject{}
-	landingJSON, err := json.Marshal(landing)
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().PutState(dronename, landingJSON)
+	return ctx.GetStub().PutState(statIP, []byte(statJSON))
 }
 
 // ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadLanding(ctx contractapi.TransactionContextInterface, dronename string) (*internal.StatsObject, error) {
-	landingJSON, err := ctx.GetStub().GetState(dronename)
+func (s *SmartContract) ReadStat(ctx contractapi.TransactionContextInterface, statIP string) (*internal.StatsObject, error) {
+	statJSON, err := ctx.GetStub().GetState(statIP)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from world state: %v", err)
 	}
-	if landingJSON == nil {
-		return nil, fmt.Errorf("the landing %s does not exist", dronename)
+	if statJSON == nil {
+		return nil, fmt.Errorf("the Stats for %s do not exist", statIP)
 	}
 
-	var landing internal.StatsObject
-	err = json.Unmarshal(landingJSON, &landing)
+	var stat internal.StatsObject
+	err = json.Unmarshal(statJSON, &stat)
 	if err != nil {
 		return nil, err
 	}
 
-	return &landing, nil
+	return &stat, nil
 }
 
 // UpdateAsset updates an existing asset in the world state with provided parameters.
-func (s *SmartContract) UpdateLanding(ctx contractapi.TransactionContextInterface, dronename string, landingxposition float64, landingyposition float64) error {
-	exists, err := s.LandingExists(ctx, dronename)
+func (s *SmartContract) UpdateStat(ctx contractapi.TransactionContextInterface, statIP string, statJSON string) error {
+	exists, err := s.StatExists(ctx, statIP)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("the landing %s does not exist", dronename)
+		return fmt.Errorf("the Stats for %s do not exist", statIP)
 	}
-
-	// overwriting original asset with new asset
-	landing := internal.StatsObject{}
-	landingJSON, err := json.Marshal(landing)
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().PutState(dronename, landingJSON)
+	return ctx.GetStub().PutState(statIP, []byte(statJSON))
 }
 
 // DeleteAsset deletes an given asset from the world state.
 func (s *SmartContract) DeleteLanding(ctx contractapi.TransactionContextInterface, dronename string) error {
-	exists, err := s.LandingExists(ctx, dronename)
+	exists, err := s.StatExists(ctx, dronename)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("the asset %s does not exist", dronename)
+		return fmt.Errorf("the Stats for %s do not exist", dronename)
 	}
 
 	return ctx.GetStub().DelState(dronename)
 }
 
 // AssetExists returns true when asset with given ID exists in world state
-func (s *SmartContract) LandingExists(ctx contractapi.TransactionContextInterface, dronename string) (bool, error) {
-	landingJSON, err := ctx.GetStub().GetState(dronename)
+func (s *SmartContract) StatExists(ctx contractapi.TransactionContextInterface, statIP string) (bool, error) {
+	statJSON, err := ctx.GetStub().GetState(statIP)
 	if err != nil {
 		return false, fmt.Errorf("failed to read from world state: %v", err)
 	}
 
-	return landingJSON != nil, nil
+	return statJSON != nil, nil
 }
 
 // TransferAsset updates the owner field of asset with given id in world state.
-func (s *SmartContract) TransferLanding(ctx contractapi.TransactionContextInterface, dronename string, AnotherDrone string) error {
-	landing, err := s.ReadLanding(ctx, dronename)
+func (s *SmartContract) TransferStat(ctx contractapi.TransactionContextInterface, statIP string, newStatIP string) (string, error) {
+	statObject, err := s.ReadStat(ctx, statIP)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	landing.Dronename = AnotherDrone
-	landingJSON, err := json.Marshal(landing)
-	if err != nil {
-		return err
-	}
+	statObject.Identity.IP = newStatIP
 
-	return ctx.GetStub().PutState(dronename, landingJSON)
+	return statObject.String(), ctx.GetStub().PutState(newStatIP, []byte(statObject.String()))
 }
 
 // GetAllAssets returns all assets found in world state
@@ -139,20 +115,20 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	}
 	defer resultsIterator.Close()
 
-	var landings []*internal.StatsObject
+	var statObjects []*internal.StatsObject
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var landing internal.StatsObject
-		err = json.Unmarshal(queryResponse.Value, &landing)
+		var statObject internal.StatsObject
+		err = json.Unmarshal(queryResponse.Value, &statObject)
 		if err != nil {
 			return nil, err
 		}
-		landings = append(landings, &landing)
+		statObjects = append(statObjects, &statObject)
 	}
 
-	return landings, nil
+	return statObjects, nil
 }
