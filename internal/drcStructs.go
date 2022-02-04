@@ -75,20 +75,37 @@ func (d DrcDockerStats) String() string {
 }
 
 // -- TIMESTAMP
-type DcrTimestamp struct {
+type DrcTimestamp struct {
 	TimeLocal   time.Time `json:"timeLocal"`
 	TimeSeconds int64     `json:"timeSeconds"`
 	TimeNano    int64     `json:"timeNano"`
 }
 
-func (d DcrTimestamp) String() string {
+func (d DrcTimestamp) String() string {
 	s, _ := json.Marshal(d)
 	return string(s)
 }
 
-// -- COLLECTOR RESPONSE OBJECT
-type DcrStats struct {
-	Timestamp  DcrTimestamp     `json:"timestamp"`
+// -- HOST INFO
+type DrcHost struct {
+	Hostname             string `json:"hostname"`
+	Uptime               int64  `json:"uptime"`
+	BootTime             int64  `json:"boottime"`
+	Platform             string `json:"platform"`
+	VirtualizationSystem string `json:"virtualizationSystem"`
+	VirtualizationRole   string `json:"virtualizationRole"`
+	HostID               string `json:"hostid"`
+}
+
+func (d DrcHost) String() string {
+	s, _ := json.Marshal(d)
+	return string(s)
+}
+
+// -- RESPONSE OBJECT
+type DrcStats struct {
+	Timestamp  DrcTimestamp     `json:"timestamp"`
+	DrcHost    DrcHost          `json:"host"`
 	CPUStats   DrcCPUStats      `json:"cpuStats"`
 	MemStats   DrcMemStats      `json:"memStats"`
 	DiskStats  []DrcDiskStats   `json:"diskStats"`
@@ -96,25 +113,10 @@ type DcrStats struct {
 	DockerSats []DrcDockerStats `json:"dockerStats"`
 }
 
-func (d DcrStats) String() string {
-	s, _ := json.Marshal(d)
-	return string(s)
-}
-
-// -- IDENTIFIER OBJECT
-type Identity struct {
-	IP string `json:"ip"`
-}
-
-func (d Identity) String() string {
-	s, _ := json.Marshal(d)
-	return string(s)
-}
-
-// -- SMARTCONTRACT OBJECT
-type StatsObject struct {
-	Identity   Identity         `json:"identity"`
-	Timestamp  DcrTimestamp     `json:"timestamp"`
+type StoredStat struct {
+	ID         string           `json:"id"`
+	Timestamp  DrcTimestamp     `json:"timestamp"`
+	DrcHost    DrcHost          `json:"host"`
 	CPUStats   DrcCPUStats      `json:"cpuStats"`
 	MemStats   DrcMemStats      `json:"memStats"`
 	DiskStats  []DrcDiskStats   `json:"diskStats"`
@@ -122,12 +124,30 @@ type StatsObject struct {
 	DockerSats []DrcDockerStats `json:"dockerStats"`
 }
 
-func (d StatsObject) String() string {
+func (d DrcStats) String() string {
 	s, _ := json.Marshal(d)
 	return string(s)
 }
 
-func ObjectToStruct(v string) (statsObject StatsObject) {
-	json.Unmarshal([]byte(v), &statsObject)
-	return statsObject
+func DrcJsonToStruct(v string) (drcStats DrcStats) {
+	json.Unmarshal([]byte(v), &drcStats)
+	return drcStats
+}
+
+func ConvertToStorage(drcStats DrcStats) StoredStat {
+	return StoredStat{
+		ID:         "",
+		Timestamp:  drcStats.Timestamp,
+		DrcHost:    drcStats.DrcHost,
+		CPUStats:   drcStats.CPUStats,
+		MemStats:   drcStats.MemStats,
+		DiskStats:  drcStats.DiskStats,
+		ProcStats:  drcStats.ProcStats,
+		DockerSats: drcStats.DockerSats,
+	}
+}
+
+func (d StoredStat) String() string {
+	s, _ := json.Marshal(d)
+	return string(s)
 }
