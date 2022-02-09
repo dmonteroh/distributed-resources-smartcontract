@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmonteroh/distributed-resources-smartcontract/internal"
+	"github.com/dmonteroh/distributed-resources-smartcontract/resources-sc/internal"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 

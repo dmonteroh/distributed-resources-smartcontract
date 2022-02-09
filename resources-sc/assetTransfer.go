@@ -7,17 +7,17 @@ package main
 import (
 	"log"
 
-	"github.com/dmonteroh/distributed-resources-smartcontract/chaincode"
+	"github.com/dmonteroh/distributed-resources-smartcontract/resources-sc/chaincode"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 func main() {
 	assetChaincode, err := contractapi.NewChaincode(&chaincode.SmartContract{})
 	if err != nil {
-		log.Panicf("Error creating asset-transfer-basic chaincode: %v", err)
+		log.Panicf("Error creating resources-sc chaincode: %v", err)
 	}
 
 	if err := assetChaincode.Start(); err != nil {
-		log.Panicf("Error starting asset-transfer-basic chaincode: %v", err)
+		log.Panicf("Error starting resources-sc chaincode: %v", err)
 	}
 }
