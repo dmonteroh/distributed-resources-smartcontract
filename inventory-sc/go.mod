@@ -1,4 +1,4 @@
-module github.com/dmonteroh/distributed-resources-smartcontract
+module github.com/dmonteroh/distributed-resources-smartcontract/inventory-sc
 
 go 1.17
 
