@@ -1,6 +1,10 @@
 package internal
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/wI2L/jettison"
+)
 
 // INVENTORY ASSET
 type Asset struct {
@@ -13,11 +17,16 @@ type Asset struct {
 }
 
 func (d Asset) String() string {
-	s, _ := json.Marshal(d)
+	s, _ := jettison.MarshalOpts(d, jettison.NilMapEmpty(), jettison.NilSliceEmpty())
 	return string(s)
 }
 
-func JsonToAsset(v string) (asset Asset) {
-	json.Unmarshal([]byte(v), &asset)
-	return asset
+func JsonToAsset(v string) (asset Asset, err error) {
+	err = json.Unmarshal([]byte(v), &asset)
+	return asset, err
+}
+
+func JsonToAssetArray(v string) (assets []Asset, err error) {
+	err = json.Unmarshal([]byte(v), &assets)
+	return assets, err
 }

@@ -2,7 +2,10 @@ module github.com/dmonteroh/distributed-resources-smartcontract/resources-sc
 
 go 1.17
 
-require github.com/hyperledger/fabric-contract-api-go v1.1.1
+require (
+	github.com/hyperledger/fabric-contract-api-go v1.1.1
+	github.com/wI2L/jettison v0.7.3
+)
 
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect

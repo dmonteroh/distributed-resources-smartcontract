@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dmonteroh/distributed-resources-smartcontract/inventory-sc/internal"
+	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
@@ -52,7 +53,10 @@ func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, a
 
 // CreateAsset issues a new asset to the world state with given details.
 func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface, assetJson string) error {
-	asset := internal.JsonToAsset(assetJson)
+	asset, err := internal.JsonToAsset(assetJson)
+	if err != nil {
+		return err
+	}
 	exists, err := s.AssetExists(ctx, asset.ID)
 	if err != nil {
 		return err
@@ -69,7 +73,10 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 
 // UpdateAsset updates an existing asset in the world state with provided parameters.
 func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface, assetJson string) error {
-	asset := internal.JsonToAsset(assetJson)
+	asset, err := internal.JsonToAsset(assetJson)
+	if err != nil {
+		return err
+	}
 	exists, err := s.AssetExists(ctx, asset.ID)
 	if err != nil {
 		return err
@@ -129,13 +136,35 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 		return nil, err
 	}
 	defer resultsIterator.Close()
+	return iteratorSlicer(resultsIterator)
+}
+
+func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	serverAssetQuery := `{"selector":{"type":0,"state":1}}`
+	return stringQuery(ctx, serverAssetQuery)
+}
+
+func stringQuery(ctx contractapi.TransactionContextInterface, queryString string) ([]internal.Asset, error) {
+	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	return iteratorSlicer(resultsIterator)
+}
+
+func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]internal.Asset, error) {
 	var assets []internal.Asset
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
-		asset := internal.JsonToAsset(string(queryResponse.Value))
+		asset, err := internal.JsonToAsset(string(queryResponse.Value))
+		if err != nil {
+			return nil, err
+		}
 		assets = append(assets, asset)
 	}
 
