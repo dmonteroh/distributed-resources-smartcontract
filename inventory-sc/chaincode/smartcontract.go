@@ -144,8 +144,14 @@ func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterf
 	return stringQuery(ctx, serverAssetQuery)
 }
 
+func (s *SmartContract) GetServerAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":0,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
+	return stringQuery(ctx, serverAssetQuery)
+}
+
 func stringQuery(ctx contractapi.TransactionContextInterface, queryString string) ([]internal.Asset, error) {
 	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+
 	if err != nil {
 		return nil, err
 	}
