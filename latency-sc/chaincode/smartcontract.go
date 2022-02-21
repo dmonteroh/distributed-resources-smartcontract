@@ -59,7 +59,10 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("the Asset for %s already exists", asset.ID)
 	}
 
-	// RUN VALIDATION
+	// RUN VALIDATIONS
+	if len(asset.Results) == 0 {
+		return fmt.Errorf("no latency results were posted, ignored")
+	}
 	validJson := []byte(asset.String())
 
 	return ctx.GetStub().PutState(asset.ID, validJson)
