@@ -51,17 +51,21 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 	if err != nil {
 		return err
 	}
+
+	// RUN VALIDATIONS
+	if len(asset.Results) == 0 {
+		return fmt.Errorf("no latency results were posted, ignored")
+	}
+	if asset.ID == "" {
+		return fmt.Errorf("latency results was posted without ID, ignored")
+	}
+
 	exists, err := s.AssetExists(ctx, asset.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
 		return fmt.Errorf("the Asset for %s already exists", asset.ID)
-	}
-
-	// RUN VALIDATIONS
-	if len(asset.Results) == 0 {
-		return fmt.Errorf("no latency results were posted, ignored")
 	}
 	validJson := []byte(asset.String())
 
@@ -74,6 +78,15 @@ func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface,
 	if err != nil {
 		return err
 	}
+
+	// RUN VALIDATIONS
+	if len(asset.Results) == 0 {
+		return fmt.Errorf("no latency results were posted, ignored")
+	}
+	if asset.ID == "" {
+		return fmt.Errorf("latency results was posted without ID, ignored")
+	}
+
 	exists, err := s.AssetExists(ctx, asset.ID)
 	if err != nil {
 		return err
@@ -82,7 +95,6 @@ func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("the Asset for %s already exists", asset.ID)
 	}
 
-	// RUN VALIDATION
 	validJson := []byte(asset.String())
 
 	return ctx.GetStub().PutState(asset.ID, validJson)
