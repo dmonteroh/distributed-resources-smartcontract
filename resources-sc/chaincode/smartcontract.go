@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmonteroh/distributed-resources-smartcontract/internal"
+	"github.com/dmonteroh/distributed-resources-smartcontract/resources-sc/internal"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
@@ -37,7 +37,10 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("the Stats for %s already exists", statIP)
 	}
 
-	tmpStat := internal.DrcJsonToStruct(statJSON)
+	tmpStat, err := internal.DrcJsonToStruct(statJSON)
+	if err != nil {
+		return err
+	}
 	toStore := internal.ConvertToStorage(tmpStat)
 	toStore.ID = statIP
 	// RUN VALIDATION
@@ -74,7 +77,10 @@ func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("the Stats for %s do not exist", statIP)
 	}
 
-	tmpStat := internal.DrcJsonToStruct(statJSON)
+	tmpStat, err := internal.DrcJsonToStruct(statJSON)
+	if err != nil {
+		return err
+	}
 	toStore := internal.ConvertToStorage(tmpStat)
 	toStore.ID = statIP
 
