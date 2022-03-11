@@ -11,7 +11,7 @@ type Asset struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Owner      string            `json:"owner"`
-	Type       int               `json:"type"`       //[0: Server, 1: Sensor, 2: Robot]
+	Type       int               `json:"type"`       //[0: Server, 1: Robot, 2: Sensor]
 	State      int               `json:"state"`      //[0: Disabled, 1: Enabled]
 	Properties map[string]string `json:"properties"` //{GPU: TRUE ...}
 }

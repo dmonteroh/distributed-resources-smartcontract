@@ -139,6 +139,9 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	return iteratorSlicer(resultsIterator)
 }
 
+// https://stackoverflow.com/questions/66685696/couchdb-mango-query-match-any-key-with-array-item
+// GENERATE VIEW TO BETTER SEARCH PROPERTIES INSIDE INVENTORY ASSETS
+
 func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
 	serverAssetQuery := `{"selector":{"type":0,"state":1}}`
 	return stringQuery(ctx, serverAssetQuery)
@@ -146,6 +149,26 @@ func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterf
 
 func (s *SmartContract) GetServerAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
 	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":0,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
+	return stringQuery(ctx, serverAssetQuery)
+}
+
+func (s *SmartContract) GetRobotAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	serverAssetQuery := `{"selector":{"type":1,"state":1}}`
+	return stringQuery(ctx, serverAssetQuery)
+}
+
+func (s *SmartContract) GetRobotAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":1,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
+	return stringQuery(ctx, serverAssetQuery)
+}
+
+func (s *SmartContract) GetSensorAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	serverAssetQuery := `{"selector":{"type":2,"state":1}}`
+	return stringQuery(ctx, serverAssetQuery)
+}
+
+func (s *SmartContract) GetSensorAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":2,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
 	return stringQuery(ctx, serverAssetQuery)
 }
 
