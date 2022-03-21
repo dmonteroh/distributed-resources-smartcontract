@@ -143,33 +143,43 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 // GENERATE VIEW TO BETTER SEARCH PROPERTIES INSIDE INVENTORY ASSETS
 
 func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
-	serverAssetQuery := `{"selector":{"type":0,"state":1}}`
-	return stringQuery(ctx, serverAssetQuery)
+	assetQuery := `{"selector":{"type":0,"state":1}}`
+	return stringQuery(ctx, assetQuery)
 }
 
 func (s *SmartContract) GetServerAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
-	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":0,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
-	return stringQuery(ctx, serverAssetQuery)
+	assetQuery := fmt.Sprintf(`{"selector":{"type":0,"state":1,"$not":{"id":"%s"}}}`, excludeId)
+	return stringQuery(ctx, assetQuery)
 }
 
 func (s *SmartContract) GetRobotAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
-	serverAssetQuery := `{"selector":{"type":1,"state":1}}`
-	return stringQuery(ctx, serverAssetQuery)
+	assetQuery := `{"selector":{"type":1,"state":1}}`
+	return stringQuery(ctx, assetQuery)
 }
 
 func (s *SmartContract) GetRobotAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
-	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":1,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
-	return stringQuery(ctx, serverAssetQuery)
+	assetQuery := fmt.Sprintf(`{"selector":{"type":1,"state":1,"$not":{"id":"%s"}}}`, excludeId)
+	return stringQuery(ctx, assetQuery)
 }
 
 func (s *SmartContract) GetSensorAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
-	serverAssetQuery := `{"selector":{"type":2,"state":1}}`
-	return stringQuery(ctx, serverAssetQuery)
+	assetQuery := `{"selector":{"type":2,"state":1}}`
+	return stringQuery(ctx, assetQuery)
 }
 
 func (s *SmartContract) GetSensorAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
-	serverAssetQuery := fmt.Sprintf(`{"selector":{"type":2,"state":1,"id":{"$ne":"%s"}}}`, excludeId)
-	return stringQuery(ctx, serverAssetQuery)
+	assetQuery := fmt.Sprintf(`{"selector":{"type":2,"state":1,"$not":{"id":"%s"}}}`, excludeId)
+	return stringQuery(ctx, assetQuery)
+}
+
+func (s *SmartContract) GetSensorAndRobotAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	assetQuery := `{"selector":{"type":{"$in":[1,2]},"state":1}}`
+	return stringQuery(ctx, assetQuery)
+}
+
+func (s *SmartContract) GetSensorAndRobotAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	assetQuery := fmt.Sprintf(`{"selector":{"type":{"$in":[1,2]},"state":1,"$not":{"id":"%s"}}}`, excludeId)
+	return stringQuery(ctx, assetQuery)
 }
 
 func stringQuery(ctx contractapi.TransactionContextInterface, queryString string) ([]internal.Asset, error) {
