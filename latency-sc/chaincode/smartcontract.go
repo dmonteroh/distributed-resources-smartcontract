@@ -204,6 +204,120 @@ func (s *SmartContract) GetServerAssetsExceptId(ctx contractapi.TransactionConte
 	return assetArray, nil
 }
 
+func (s *SmartContract) GetRobotAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	params := []string{"GetRobotAssets"}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetRobotAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	params := []string{"GetRobotAssetsExceptId", excludeId}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetSensorAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	params := []string{"GetSensorAssets"}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetSensorAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	params := []string{"GetSensorAssetsExceptId", excludeId}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetSensorAndRobotAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	params := []string{"GetSensorAndRobotAssets"}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetSensorAndRobotAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
+	params := []string{"GetSensorAndRobotAssetsExceptId", excludeId}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
 // func iteratorSlicerAsset(resultsIterator shim.StateQueryIteratorInterface) ([]internal.Asset, error) {
 // 	var assets []internal.Asset
 // 	for resultsIterator.HasNext() {
