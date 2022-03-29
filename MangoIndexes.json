@@ -1,0 +1,24 @@
+// Forgot to save before generating -- Latency-SC Index on Seconds Timestamp, Source and Target
+{
+    "type": "json",
+    "partitioned": false,
+    "def": {
+     "fields": [
+      {
+       "_id": "asc"
+      },
+      {
+       "id": "asc"
+      },
+      {
+       "source": "asc"
+      },
+      {
+       "timestamp.timeSeconds": "asc"
+      },
+      {
+       "results.[].hostname": "asc"
+      }
+     ]
+    }
+   }
