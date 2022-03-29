@@ -3,7 +3,6 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/dmonteroh/distributed-resources-smartcontract/resources-sc/internal"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
@@ -25,6 +24,7 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 			return fmt.Errorf("failed to put to world state. %v", err)
 		}
 	}
+
 	return nil
 }
 
@@ -111,41 +111,6 @@ func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface,
 	return statJSON != nil, nil
 }
 
-func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]internal.StoredStat, error) {
-	var assets []internal.StoredStat
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-		asset, err := internal.JsonToStoredStat(string(queryResponse.Value))
-		if err != nil {
-			return nil, err
-		}
-		assets = append(assets, asset)
-	}
-
-	return assets, nil
-}
-
-func stringQuery(ctx contractapi.TransactionContextInterface, queryString string) ([]internal.StoredStat, error) {
-	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
-
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	return iteratorSlicer(resultsIterator)
-}
-
-func (s *SmartContract) GetAssetResourceListTime(ctx contractapi.TransactionContextInterface, source string, minutes int) ([]internal.StoredStat, error) {
-	timeStart := time.Now()
-	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
-	assetQuery := fmt.Sprintf(`{"selector":{"host":"%s","$timestamp.timeSeconds":{"$gte": "%d","$lt": "%d"}}}`, source, timeStart.Unix(), timeEnd.Unix())
-	return stringQuery(ctx, assetQuery)
-}
-
 // CURRENTLY IN TO-DO (NO OWNERSHIP REQUIRED ATM)
 // TransferAsset updates the owner field of asset with given id in world state.
 // func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, statIP string, newStatIP string) (string, error) {
@@ -186,3 +151,71 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 
 	return statObjects, nil
 }
+
+// INVETORY SMART CONTRACT INVOKATION
+func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	params := []string{"GetServerAssets"}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("inventory-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.JsonToAssetArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetLatencyFromServer(ctx contractapi.TransactionContextInterface) ([]internal.LatencyAsset, error) {
+	params := []string{"GetAssetListTime"}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("latency-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.LatencyAssetJsonToStructArray(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+func (s *SmartContract) GetResourcesFromServer(ctx contractapi.TransactionContextInterface) ([]internal.StoredStat, error) {
+	params := []string{"GetAssetResourceListTime"}
+	queryArgs := make([][]byte, len(params))
+	for i, arg := range params {
+		queryArgs[i] = []byte(arg)
+	}
+
+	response := ctx.GetStub().InvokeChaincode("resources-sc", queryArgs, "mychannel")
+	if response.Status != shim.OK {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", response.Payload)
+	}
+
+	assetArray, err := internal.ArrayStoredStat(string(response.GetPayload()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query chaincode. Error %s", err)
+	}
+	return assetArray, nil
+}
+
+// func (s *SmartContract) SelectServer(ctx contractapi.TransactionContextInterface) (string, error) {
+// 	serverList := GetServerAssets()
+// 	//apply filters based on search (GPU TRUE // GPU FALSE)
+// 	//for filteredServerList
+// 		//GetLatencyFromServer
+// 		//GetResourcesFromServer
+
+// 	//Selection based on LATENCY > CPU > RAM
+// }

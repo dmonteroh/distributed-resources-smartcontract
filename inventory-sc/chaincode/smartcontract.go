@@ -200,12 +200,14 @@ func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]interna
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println(queryResponse.Value)
+		fmt.Println(string(queryResponse.Value))
 		asset, err := internal.JsonToAsset(string(queryResponse.Value))
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println(asset)
 		assets = append(assets, asset)
 	}
-
 	return assets, nil
 }

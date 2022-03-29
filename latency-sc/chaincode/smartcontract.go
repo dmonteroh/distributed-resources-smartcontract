@@ -2,6 +2,7 @@ package chaincode
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/dmonteroh/distributed-resources-smartcontract/latency-sc/internal"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
@@ -163,6 +164,31 @@ func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]interna
 	}
 
 	return assets, nil
+}
+
+func stringQuery(ctx contractapi.TransactionContextInterface, queryString string) ([]internal.LatencyAsset, error) {
+	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	return iteratorSlicer(resultsIterator)
+}
+
+func (s *SmartContract) GetAssetListTimeSource(ctx contractapi.TransactionContextInterface, source string, minutes int) ([]internal.LatencyAsset, error) {
+	timeStart := time.Now()
+	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
+	assetQuery := fmt.Sprintf(`{"selector":{"source":"%s","$timestamp.timeSeconds":{"$lt": %d,"$gte": %d}}}`, source, timeStart.Unix(), timeEnd.Unix())
+	return stringQuery(ctx, assetQuery)
+}
+
+func (s *SmartContract) GetAssetListTimeTarget(ctx contractapi.TransactionContextInterface, target string, minutes int) ([]internal.LatencyAsset, error) {
+	timeStart := time.Now()
+	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
+	assetQuery := fmt.Sprintf(`{"selector":{"results":{"$elemMatch": {"hostname": "%s"}},"$timestamp.timeSeconds":{"$lt": %d,"$gte": %d}}}`, target, timeStart.Unix(), timeEnd.Unix())
+	return stringQuery(ctx, assetQuery)
 }
 
 // INVETORY SMART CONTRACT INVOKATION
