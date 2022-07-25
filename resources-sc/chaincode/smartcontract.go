@@ -3,6 +3,7 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/dmonteroh/distributed-resources-smartcontract/resources-sc/internal"
@@ -38,12 +39,12 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("the Stats for %s already exists", statIP)
 	}
 
-	tmpStat, err := internal.DrcJsonToStruct(statJSON)
+	toStore, err := internal.JsonToStoredStat(statJSON)
 	if err != nil {
 		return err
 	}
-	toStore := internal.ConvertToStorage(tmpStat)
-	toStore.ID = statIP
+	// toStore := internal.ConvertToStorage(tmpStat)
+	// toStore.ID = statIP
 	// RUN VALIDATION
 
 	return ctx.GetStub().PutState(statIP, []byte(toStore.String()))
@@ -113,17 +114,25 @@ func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface,
 
 func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]internal.StoredStat, error) {
 	var assets []internal.StoredStat
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
+	if resultsIterator.HasNext() {
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			asset, err := internal.JsonToStoredStat(string(queryResponse.Value))
+			if err != nil {
+				return nil, err
+			}
+			assets = append(assets, asset)
 		}
-		asset, err := internal.JsonToStoredStat(string(queryResponse.Value))
-		if err != nil {
-			return nil, err
-		}
-		assets = append(assets, asset)
+	} else {
+		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
 	}
+
+	sort.Slice(assets, func(i, j int) bool {
+		return assets[i].Timestamp.TimeSeconds > assets[j].Timestamp.TimeSeconds
+	})
 
 	return assets, nil
 }
@@ -139,25 +148,50 @@ func stringQuery(ctx contractapi.TransactionContextInterface, queryString string
 	return iteratorSlicer(resultsIterator)
 }
 
-func (s *SmartContract) GetAssetResourceListTime(ctx contractapi.TransactionContextInterface, source string, minutes int) ([]internal.StoredStat, error) {
-	timeStart := time.Now()
-	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
-	assetQuery := fmt.Sprintf(`{"selector":{"host":"%s","$timestamp.timeSeconds":{"$gte": "%d","$lt": "%d"}}}`, source, timeStart.Unix(), timeEnd.Unix())
+func (s *SmartContract) GetAssetResource(ctx contractapi.TransactionContextInterface, hostname string) ([]internal.StoredStat, error) {
+	assetQuery := fmt.Sprintf(`{"selector": {"hostname": "%s"}}`, hostname)
 	return stringQuery(ctx, assetQuery)
 }
 
-// CURRENTLY IN TO-DO (NO OWNERSHIP REQUIRED ATM)
-// TransferAsset updates the owner field of asset with given id in world state.
-// func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, statIP string, newStatIP string) (string, error) {
-// 	statObject, err := s.ReadAsset(ctx, statIP)
-// 	if err != nil {
-// 		return "", err
-// 	}
+func (s *SmartContract) GetAssetResourceListTime(ctx contractapi.TransactionContextInterface, hostname string, minutes int) ([]internal.StoredStat, error) {
+	timeStart := time.Now()
+	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
+	assetQuery := fmt.Sprintf(`{"selector": {"hostname": "%s","timestamp.timeSeconds": {"$lt": %d,"$gte": %d}}}`, hostname, timeStart.Unix(), timeEnd.Unix())
+	return stringQuery(ctx, assetQuery)
+}
 
-// 	statObject.ID = newStatIP
+func (s *SmartContract) GetLastResourceSummary(ctx contractapi.TransactionContextInterface, hostname string) (internal.StatSummary, error) {
+	var statSummary internal.StatSummary
+	assetQuery := fmt.Sprintf(`{"selector": {"hostname": "%s"}, "sort": [{"timestamp.timeSeconds": "desc"}], "limit": 2,"use_index": "resource_index"}`, hostname)
+	queryResult, err := stringQuery(ctx, assetQuery)
+	if err != nil {
+		return statSummary, err
+	}
 
-// 	return statObject.String(), ctx.GetStub().PutState(newStatIP, []byte(statObject.String()))
-// }
+	statSummary = internal.SummarizeStoredStat(queryResult[0])
+
+	return statSummary, nil
+}
+
+func (s *SmartContract) GetSummaryAnalysisTime(ctx contractapi.TransactionContextInterface, hostname string, minutes int) (internal.StatAnalysis, error) {
+	var statAnalysis internal.StatAnalysis
+	storedStatList, err := s.GetAssetResourceListTime(ctx, hostname, minutes)
+	if err != nil {
+		return statAnalysis, err
+	}
+	var statSummarySlice []internal.StatSummary
+	for _, stat := range storedStatList {
+		var statSummary = internal.SummarizeStoredStat(stat)
+		statSummarySlice = append(statSummarySlice, statSummary)
+	}
+
+	statAnalysis.Hostname = hostname
+	statAnalysis.Duration = minutes
+	statAnalysis.StatSummary = statSummarySlice
+	statAnalysis = internal.AnalizeStatSummary(statAnalysis)
+
+	return statAnalysis, nil
+}
 
 // GetAllAssets returns all assets found in world state
 func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*internal.StoredStat, error) {
@@ -185,4 +219,28 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	}
 
 	return statObjects, nil
+}
+
+// Function for testing CouchDB Queries
+func (s *SmartContract) ExecuteQuery(ctx contractapi.TransactionContextInterface, assetQuery string) ([]string, error) {
+	var result []string
+	resultsIterator, err := ctx.GetStub().GetQueryResult(assetQuery)
+	if err != nil {
+		return result, err
+	}
+	defer resultsIterator.Close()
+	if resultsIterator.HasNext() {
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, string(queryResponse.Value))
+		}
+	} else {
+		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
+	}
+
+	return result, nil
+
 }

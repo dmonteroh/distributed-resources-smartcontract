@@ -1,24 +1,24 @@
-// Forgot to save before generating -- Latency-SC Index on Seconds Timestamp, Source and Target
+// INDEX FOR RESOURCES
 {
-    "type": "json",
-    "partitioned": false,
-    "def": {
-     "fields": [
-      {
-       "_id": "asc"
-      },
-      {
-       "id": "asc"
-      },
-      {
-       "source": "asc"
-      },
-      {
-       "timestamp.timeSeconds": "asc"
-      },
-      {
-       "results.[].hostname": "asc"
-      }
-     ]
-    }
-   }
+    "index": {
+       "fields": [
+          {"timestamp.timeSeconds": "desc"}
+       ]
+    },
+    "name": "resource_index",
+    "type": "json"
+}
+
+// INDEX FOR LATENCY
+{
+    "index": {
+       "fields": [
+          "timestamp.timeSeconds",
+          "source",
+          "id",
+          "results.[].hostname"
+       ]
+    },
+    "name": "latency_index",
+    "type": "json"
+}

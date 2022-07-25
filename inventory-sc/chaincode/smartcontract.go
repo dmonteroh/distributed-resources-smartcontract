@@ -147,6 +147,11 @@ func (s *SmartContract) GetServerAssets(ctx contractapi.TransactionContextInterf
 	return stringQuery(ctx, assetQuery)
 }
 
+func (s *SmartContract) GetServerGPUAssets(ctx contractapi.TransactionContextInterface) ([]internal.Asset, error) {
+	assetQuery := `{"selector":{"type":0,"state":1,"properties.gpu":1}}`
+	return stringQuery(ctx, assetQuery)
+}
+
 func (s *SmartContract) GetServerAssetsExceptId(ctx contractapi.TransactionContextInterface, excludeId string) ([]internal.Asset, error) {
 	assetQuery := fmt.Sprintf(`{"selector":{"type":0,"state":1,"$not":{"id":"%s"}}}`, excludeId)
 	return stringQuery(ctx, assetQuery)
@@ -210,4 +215,28 @@ func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]interna
 		assets = append(assets, asset)
 	}
 	return assets, nil
+}
+
+// Function for testing CouchDB Queries
+func (s *SmartContract) ExecuteQuery(ctx contractapi.TransactionContextInterface, assetQuery string) ([]string, error) {
+	var result []string
+	resultsIterator, err := ctx.GetStub().GetQueryResult(assetQuery)
+	if err != nil {
+		return result, err
+	}
+	defer resultsIterator.Close()
+	if resultsIterator.HasNext() {
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, string(queryResponse.Value))
+		}
+	} else {
+		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
+	}
+
+	return result, nil
+
 }

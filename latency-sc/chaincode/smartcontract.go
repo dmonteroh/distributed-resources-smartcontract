@@ -2,6 +2,7 @@ package chaincode
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/dmonteroh/distributed-resources-smartcontract/latency-sc/internal"
@@ -149,19 +150,71 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 	return iteratorSlicer(resultsIterator)
 }
 
+func filterLatencyTarget(target string, results []internal.LatencyResult) []internal.LatencyResult {
+
+	filteredResults := make([]internal.LatencyResult, 0)
+	for _, result := range results {
+		if result.Hostname == target {
+			filteredResults = append(filteredResults, result)
+		}
+	}
+
+	return filteredResults
+}
+
+func iteratorSlicerTarget(ctx contractapi.TransactionContextInterface, queryString string, target string) ([]internal.LatencyAsset, error) {
+	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+	var assets []internal.LatencyAsset
+	if resultsIterator.HasNext() {
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			asset, err := internal.LatencyAssetJsonToStruct(string(queryResponse.Value))
+			if err != nil {
+				return nil, err
+			}
+			asset.Results = filterLatencyTarget(target, asset.Results)
+			assets = append(assets, asset)
+		}
+	} else {
+		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
+	}
+
+	sort.Slice(assets, func(i, j int) bool {
+		return assets[i].Timestamp.TimeSeconds > assets[j].Timestamp.TimeSeconds
+	})
+
+	return assets, nil
+}
+
 func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]internal.LatencyAsset, error) {
 	var assets []internal.LatencyAsset
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
+	if resultsIterator.HasNext() {
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			asset, err := internal.LatencyAssetJsonToStruct(string(queryResponse.Value))
+			if err != nil {
+				return nil, err
+			}
+			assets = append(assets, asset)
 		}
-		asset, err := internal.LatencyAssetJsonToStruct(string(queryResponse.Value))
-		if err != nil {
-			return nil, err
-		}
-		assets = append(assets, asset)
+	} else {
+		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
 	}
+
+	sort.Slice(assets, func(i, j int) bool {
+		return assets[i].Timestamp.TimeSeconds > assets[j].Timestamp.TimeSeconds
+	})
 
 	return assets, nil
 }
@@ -180,15 +233,45 @@ func stringQuery(ctx contractapi.TransactionContextInterface, queryString string
 func (s *SmartContract) GetAssetListTimeSource(ctx contractapi.TransactionContextInterface, source string, minutes int) ([]internal.LatencyAsset, error) {
 	timeStart := time.Now()
 	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
-	assetQuery := fmt.Sprintf(`{"selector":{"source":"%s","$timestamp.timeSeconds":{"$lt": %d,"$gte": %d}}}`, source, timeStart.Unix(), timeEnd.Unix())
+	assetQuery := fmt.Sprintf(`{"selector": {"source": "%s","timestamp.timeSeconds": {"$lt": %d,"$gte": %d}}}`, source, timeStart.Unix(), timeEnd.Unix())
 	return stringQuery(ctx, assetQuery)
 }
 
 func (s *SmartContract) GetAssetListTimeTarget(ctx contractapi.TransactionContextInterface, target string, minutes int) ([]internal.LatencyAsset, error) {
 	timeStart := time.Now()
 	timeEnd := timeStart.Add(time.Duration(-time.Duration(minutes) * time.Minute))
-	assetQuery := fmt.Sprintf(`{"selector":{"results":{"$elemMatch": {"hostname": "%s"}},"$timestamp.timeSeconds":{"$lt": %d,"$gte": %d}}}`, target, timeStart.Unix(), timeEnd.Unix())
-	return stringQuery(ctx, assetQuery)
+	assetQuery := fmt.Sprintf(`{"selector": {"results": {"$elemMatch": {"hostname": "%s"}},"timestamp.timeSeconds": {"$lt": %d,"$gte": %d}}}`, target, timeStart.Unix(), timeEnd.Unix())
+	return iteratorSlicerTarget(ctx, assetQuery, target)
+}
+
+func (s *SmartContract) GetAnalysisTimeTarget(ctx contractapi.TransactionContextInterface, target string, minutes int) ([]internal.LatencyAnalysis, error) {
+	var targetAnalysis []internal.LatencyAnalysis
+	latencyAssetList, err := s.GetAssetListTimeTarget(ctx, target, minutes)
+	if err != nil {
+		return targetAnalysis, err
+	}
+	latencySelection := make(map[string][]int64)
+
+	for _, latencyAsset := range latencyAssetList {
+		for _, results := range latencyAsset.Results {
+			if results.Latency > -1 {
+				latencySelection[latencyAsset.Source] = append(latencySelection[latencyAsset.Source], results.Latency)
+			}
+		}
+	}
+
+	for k, v := range latencySelection {
+		var latAnalysis internal.LatencyAnalysis
+		latAnalysis.Target = target
+		latAnalysis.Duration = minutes
+		latAnalysis.Hostname = k
+		latAnalysis.LatencySummary = v
+		latAnalysis.LatencyCount = len(v)
+		latAnalysis = internal.AnalizeLatencySummary(latAnalysis)
+		targetAnalysis = append(targetAnalysis, latAnalysis)
+	}
+
+	return targetAnalysis, nil
 }
 
 // INVETORY SMART CONTRACT INVOKATION
@@ -360,3 +443,27 @@ func (s *SmartContract) GetSensorAndRobotAssetsExceptId(ctx contractapi.Transact
 
 // 	return assets, nil
 // }
+
+// Function for testing CouchDB Queries
+func (s *SmartContract) ExecuteQuery(ctx contractapi.TransactionContextInterface, assetQuery string) ([]string, error) {
+	var result []string
+	resultsIterator, err := ctx.GetStub().GetQueryResult(assetQuery)
+	if err != nil {
+		return result, err
+	}
+	defer resultsIterator.Close()
+	if resultsIterator.HasNext() {
+		for resultsIterator.HasNext() {
+			queryResponse, err := resultsIterator.Next()
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, string(queryResponse.Value))
+		}
+	} else {
+		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
+	}
+
+	return result, nil
+
+}
