@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/wI2L/jettison"
 )
@@ -52,4 +53,39 @@ func JsonToProperties(v string) (properties Properties, err error) {
 func JsonToAssetArray(v string) (assets []Asset, err error) {
 	err = json.Unmarshal([]byte(v), &assets)
 	return assets, err
+}
+
+///
+
+type Timestamp struct {
+	TimeLocal   time.Time `json:"timeLocal"`
+	TimeSeconds int64     `json:"timeSeconds"`
+	TimeNano    int64     `json:"timeNano"`
+}
+
+/// Selection Store
+type StoredSelection struct {
+	ID                  string    `json:"id"`
+	AssetID             string    `json:"assetID"`
+	Target              string    `json:"target"`
+	Timestamp           Timestamp `json:"timestamp"`
+	AverageLatency      float64   `json:"averageLatency"`
+	CPUAverageUsage     float64   `json:"cpuAverageUsage"`
+	MemoryUsePercentage float64   `json:"memoryUsePercentage"`
+	ContainersRunning   int       `json:"containersRunning"`
+}
+
+func (d StoredSelection) String() string {
+	s, _ := jettison.MarshalOpts(d, jettison.NilMapEmpty(), jettison.NilSliceEmpty())
+	return string(s)
+}
+
+func JsonToStoredSelection(v string) (selection StoredSelection, err error) {
+	err = json.Unmarshal([]byte(v), &selection)
+	return selection, err
+}
+
+func JsonToStoredSelectionArray(v string) (selection []StoredSelection, err error) {
+	err = json.Unmarshal([]byte(v), &selection)
+	return selection, err
 }

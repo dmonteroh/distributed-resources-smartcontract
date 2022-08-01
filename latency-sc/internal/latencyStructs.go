@@ -128,7 +128,10 @@ func (d LatencyAnalysis) String() string {
 	return string(s)
 }
 
-//func SummarizeLantecy(latencyAsset LatencyAsset) LatencyAnalysis {}
+func LatencyAnalysisJsonToStruct(v string) (asset LatencyAnalysis, err error) {
+	err = json.Unmarshal([]byte(v), &asset)
+	return asset, err
+}
 
 func AnalizeLatencySummary(latencyAnalysis LatencyAnalysis) LatencyAnalysis {
 	if len(latencyAnalysis.LatencySummary) > 0 {

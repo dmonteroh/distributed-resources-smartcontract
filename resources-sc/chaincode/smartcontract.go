@@ -130,7 +130,7 @@ func iteratorSlicer(resultsIterator shim.StateQueryIteratorInterface) ([]interna
 		return nil, fmt.Errorf("failed to query chaincode. No results found for iterator")
 	}
 
-	sort.Slice(assets, func(i, j int) bool {
+	sort.SliceStable(assets, func(i, j int) bool {
 		return assets[i].Timestamp.TimeSeconds > assets[j].Timestamp.TimeSeconds
 	})
 
@@ -217,6 +217,10 @@ func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface
 		}
 		statObjects = append(statObjects, &statObject)
 	}
+
+	sort.SliceStable(statObjects, func(i, j int) bool {
+		return statObjects[i].Timestamp.TimeSeconds > statObjects[j].Timestamp.TimeSeconds
+	})
 
 	return statObjects, nil
 }

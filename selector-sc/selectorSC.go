@@ -7,7 +7,7 @@ package main
 import (
 	"log"
 
-	"github.com/dmonteroh/distributed-resources-smartcontract/resources-sc/chaincode"
+	"github.com/dmonteroh/distributed-resources-smartcontract/selector-sc/chaincode"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
